@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    >
+
+    <Button
+        android:id="@+id/get"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="获取辅助权限"
+        />
+
+    <Button
+        android:id="@+id/elm"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="跳转至饿了吗"
+       />
+
+    <Button
+        android:id="@+id/write"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="permission"
+        android:text="读写"
+        />
+
+</LinearLayout>
