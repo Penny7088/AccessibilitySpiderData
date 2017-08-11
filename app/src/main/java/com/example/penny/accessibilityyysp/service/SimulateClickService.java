@@ -20,7 +20,7 @@ import java.util.List;
 
 public class SimulateClickService extends AccessibilityService {
     public static final String TAG = "SimulateClickService";
-    public static boolean isELM;
+    public static boolean isELM = false;
     private ELMCate mELM;
     private boolean completed = false;
 
@@ -47,7 +47,6 @@ public class SimulateClickService extends AccessibilityService {
     public void onAccessibilityEvent(AccessibilityEvent pAccessibilityEvent) {
         int eventType = pAccessibilityEvent.getEventType();
         String eventText = "";
-        Log.i(TAG, "==============Start====================");
         switch (eventType) {
             case AccessibilityEvent.TYPE_VIEW_CLICKED:
                 eventText = "TYPE_VIEW_CLICKED";
@@ -93,108 +92,161 @@ public class SimulateClickService extends AccessibilityService {
                 break;
             case AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED:
                 eventText = "TYPE_WINDOW_CONTENT_CHANGED";
-                CharSequence lClassName = pAccessibilityEvent.getClassName();
                 CharSequence lPackageName = pAccessibilityEvent.getPackageName();
-                Log.d(TAG, "ClassName" + lClassName);
-                Log.d(TAG, "lPackageName:" + lPackageName);
                 if (lPackageName.equals(PackageConts.ELM)) {
-                    findCate();
-                    findSynthesize();
-                    findHot();
+                    if (!isELM) {
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                sleep();
+                                findAddress();
+
+                            }
+                        }).start();
+
+                    }
 
                 }
                 break;
         }
         eventText = eventText + ":" + eventType;
         Log.i(TAG, eventText);
-        Log.i(TAG, "=============END=====================");
     }
 
-    private void findList(boolean isScrollable) {
+    private void findAddress() {
+        AccessibilityNodeInfo lInWindow = getRootInWindow();
+        if (lInWindow != null) {
+            List<AccessibilityNodeInfo> lViewById = findViewById(lInWindow, "me.ele:id/ajm");
+            for (AccessibilityNodeInfo o :
+                    lViewById) {
+                performClick(o);
+                setELM(true);
+                sleep();
+                chooseAddress();
+            }
+        } else {
+            Log.d(TAG, "未找到======================");
+            findAddress();
+        }
+//        if (lNodeInfo != null) {
+//            performClick(lNodeInfo);
+//            setELM(true);
+//            sleep();
+//            chooseAddress();
+//        }
+    }
+
+    private void chooseAddress() {
+        AccessibilityNodeInfo lInWindow = getRootInWindow();
+        if (lInWindow == null) return;
+        List<AccessibilityNodeInfo> lNodeInfos = findViewById(lInWindow, "me.ele:id/xk");
+        for (AccessibilityNodeInfo i :
+                lNodeInfos) {
+            List<AccessibilityNodeInfo> lViewById = findViewById(i, "me.ele:id/nh");
+            for (AccessibilityNodeInfo j :
+                    lViewById) {
+                Log.d(TAG, "地址:" + j.getText());
+                if (j.getText().toString().contains("武昌区大东门")) {
+                    performClick(i);
+                    sleep();
+                    findCate();
+                }
+            }
+        }
+    }
+
+    private void findList() {
+        Log.d(TAG, "===============findList");
         AccessibilityNodeInfo lNodeInfo = getRootInWindow();
         if (lNodeInfo == null) return;
         Log.d(TAG, "child" + lNodeInfo.getChildCount() + "-- className:" + lNodeInfo.getClassName());
         List<AccessibilityNodeInfo> list = findViewById(lNodeInfo, "me.ele:id/ej");
-        Log.d(TAG, "list" + lNodeInfo.getChildCount());
+//        Log.d(TAG, "list" + lNodeInfo.getChildCount());
         for (AccessibilityNodeInfo l : list) {
-            List<AccessibilityNodeInfo> itemInfo = findViewById(l, "me.ele:id/a77");
-            Log.d(TAG, "size:" + itemInfo.size());
+            List<AccessibilityNodeInfo> itemInfo = findViewById(lNodeInfo, "me.ele:id/a77");
+            Log.d(TAG, "遍历：" + itemInfo.size());
             for (AccessibilityNodeInfo i : itemInfo) {
-                Log.d(TAG, "name:" + i.getClassName());
+                Log.d(TAG, "===============:");
                 i.performAction(AccessibilityNodeInfo.ACTION_CLICK);
                 sleep();
                 findAvatar();
                 if (completed) {
-                    sleep();
                     back();
-                    sleep();
-                    back();
-                    sleep();
+                    Log.d(TAG, "===================写文件成功");
+//                    sleep();
+//                    back();
+//                    back();
+//
                 } else {
-                    sleep();
-                    continue;
+                    Log.d(TAG, "===================写文件失败");
+                    findAvatar();
                 }
 
             }
             if (itemInfo.size() > 0) {
+                sleep();
                 Log.d(TAG, "开始滚动=====================");
                 scroll(l);
+                Log.d(TAG, "开始递归=====================");
+                findList();
             }
         }
     }
 
     private void findAvatar() {
         AccessibilityNodeInfo lNodeInfo = getRootInActiveWindow();
-        if (lNodeInfo == null) return;
-        if (lNodeInfo.getChildCount() != 0) {
-            List<AccessibilityNodeInfo> list = lNodeInfo.findAccessibilityNodeInfosByViewId("me.ele:id/ahn");
-            for (AccessibilityNodeInfo l2 : list) {
-                if (l2.isClickable()) {
-                    l2.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                    getDetails();
-                } else {
-                    performClick(l2);
+        if (lNodeInfo != null) {
+            if (lNodeInfo.getChildCount() != 0) {
+                List<AccessibilityNodeInfo> list = lNodeInfo.findAccessibilityNodeInfosByViewId("me.ele:id/ahn");
+                for (AccessibilityNodeInfo l2 : list) {
+                    if (l2.isClickable()) {
+                        performClick(l2);
+                        getDetails();
+                    } else {
+                        performClick(l2);
+                        getDetails();
+                    }
                 }
             }
+        } else {
+            findAvatar();
         }
+
     }
 
     private void getDetails() {
         sleep();
         final ELMModel lModel = new ELMModel();
         AccessibilityNodeInfo lNodeInfo = getRootInActiveWindow();
-        if (lNodeInfo == null) return;
-        List<AccessibilityNodeInfo> list = lNodeInfo.findAccessibilityNodeInfosByViewId("me.ele:id/a_9");
-        for (AccessibilityNodeInfo i : list) {
-            String storeName = i.getText().toString();
-            Log.d(TAG, "storeName:" + storeName);
-            lModel.setStoreName(storeName);
-        }
-        List<AccessibilityNodeInfo> list2 = lNodeInfo.findAccessibilityNodeInfosByViewId("me.ele:id/nz");
-        for (AccessibilityNodeInfo i : list) {
-            scroll(i);
-        }
-        List<AccessibilityNodeInfo> shopInfo = findViewById(lNodeInfo, "me.ele:id/anj");
-        List<AccessibilityNodeInfo> brand = findViewById(lNodeInfo, "me.ele:id/agy");
-        List<AccessibilityNodeInfo> phone = findViewById(lNodeInfo, "me.ele:id/anm");
-        List<AccessibilityNodeInfo> address = findViewById(lNodeInfo, "me.ele:id/ajm");
-        String lInfo = serchText(shopInfo);
-        String lBrand = serchText(brand);
-        String lPhone = serchText(phone);
-        String lAddress = serchText(address);
-
-        lModel.setStoreInfomation(lInfo);
-        lModel.setPhone(lPhone);
-        lModel.setAddress(lAddress);
-        lModel.setBrand(lBrand);
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                sleep();
-                completed = FileUtil.writeFile(lModel.toString());
+        if (lNodeInfo != null) {
+            List<AccessibilityNodeInfo> list = lNodeInfo.findAccessibilityNodeInfosByViewId("me.ele:id/a_9");
+            for (AccessibilityNodeInfo i : list) {
+                String storeName = i.getText().toString();
+                Log.d(TAG, "=================" + storeName);
+                lModel.setStoreName(storeName);
             }
-        }).start();
+            List<AccessibilityNodeInfo> list2 = lNodeInfo.findAccessibilityNodeInfosByViewId("me.ele:id/nz");
+            for (AccessibilityNodeInfo i : list) {
+                scroll(i);
+            }
+            List<AccessibilityNodeInfo> shopInfo = findViewById(lNodeInfo, "me.ele:id/anj");
+            List<AccessibilityNodeInfo> brand = findViewById(lNodeInfo, "me.ele:id/agy");
+            List<AccessibilityNodeInfo> phone = findViewById(lNodeInfo, "me.ele:id/anm");
+            List<AccessibilityNodeInfo> address = findViewById(lNodeInfo, "me.ele:id/ajm");
+            String lInfo = serchText(shopInfo);
+            String lBrand = serchText(brand);
+            String lPhone = serchText(phone);
+            String lAddress = serchText(address);
 
+            lModel.setStoreInfomation(lInfo);
+            lModel.setPhone(lPhone);
+            lModel.setAddress(lAddress);
+            lModel.setBrand(lBrand);
+            completed = FileUtil.writeFile(lModel.toString());
+            back();
+        } else {
+            getDetails();
+        }
 
     }
 
@@ -222,6 +274,13 @@ public class SimulateClickService extends AccessibilityService {
         return lNodeInfosByViewId;
     }
 
+    public List<AccessibilityNodeInfo> findRootViewById(String pId) {
+        AccessibilityNodeInfo lRootInWindow = getRootInWindow();
+        if (lRootInWindow == null) return null;
+        List<AccessibilityNodeInfo> lNodeInfosByViewId = lRootInWindow.findAccessibilityNodeInfosByViewId(pId);
+        return lNodeInfosByViewId;
+    }
+
     public AccessibilityNodeInfo findViewByText(AccessibilityNodeInfo pNodeInfo, String text) {
         AccessibilityNodeInfo nodeInfo = null;
         List<AccessibilityNodeInfo> lNodeInfosByViewId = pNodeInfo.findAccessibilityNodeInfosByText(text);
@@ -245,27 +304,31 @@ public class SimulateClickService extends AccessibilityService {
                 scroll(i.getParent().getParent());
             }
         }
+        sleep();
     }
 
 
     private void performClick(AccessibilityNodeInfo l2) {
-        AccessibilityNodeInfo lParent = l2.getParent();
-        if (lParent.isClickable()) {
-            lParent.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-            getDetails();
+        if (l2.isClickable()) {
+            l2.performAction(AccessibilityNodeInfo.ACTION_CLICK);
         } else {
-            performClick(lParent);
+            if (l2.getParent().isClickable()) {
+                l2.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            } else {
+                performClick(l2.getParent());
+            }
         }
     }
 
     private void findHot() {
+        sleep();
         AccessibilityNodeInfo lRootInWindow = getRootInWindow();
         if (lRootInWindow == null) return;
         AccessibilityNodeInfo lNodeInfo = findViewByText(lRootInWindow, "销量最高");
         if (lNodeInfo == null) return;
         lNodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK);
         sleep();
-        findList(false);
+        findList();
 //        for (AccessibilityNodeInfo info : lText) {
 //            Log.d(TAG, info.getText().toString());
 //            if (info.getText().toString().equals("销量最高")) {
@@ -277,12 +340,14 @@ public class SimulateClickService extends AccessibilityService {
     }
 
     private void findSynthesize() {
+        sleep();
         AccessibilityNodeInfo lRootInWindow = getRootInWindow();
         if (lRootInWindow == null) return;
         AccessibilityNodeInfo lText = findViewByText(lRootInWindow, "综合排序");
         if (lText == null) return;
-        lText.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
-        sleep();
+        performClick(lText);
+//        sleep();
+        findHot();
 //        for (AccessibilityNodeInfo info : lText) {
 //            Log.d(TAG, info.getText().toString());
 //            if (info.getText().toString().equals("综合排序")) {
@@ -294,14 +359,22 @@ public class SimulateClickService extends AccessibilityService {
 
     public void back() {
         performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK);
+        sleep();
     }
 
     private void findCate() {
         AccessibilityNodeInfo lRootInWindow = getRootInWindow();
         if (lRootInWindow == null) return;
-        AccessibilityNodeInfo lText = findViewByText(lRootInWindow, "美食");
-        if (lText == null) return;
-        lText.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+//        AccessibilityNodeInfo lText = findViewByText(lRootInWindow, "美食");
+//        if (lText == null ) return;
+        List<AccessibilityNodeInfo> lViewById = findViewById(lRootInWindow, "me.ele:id/akh");
+        if (lViewById != null && lViewById.size() != 0) {
+            AccessibilityNodeInfo lNodeInfo = lViewById.get(0);
+            performClick(lNodeInfo);
+            findSynthesize();
+        } else {
+            findCate();
+        }
 //        for (AccessibilityNodeInfo info : lText) {
 //            Log.d(TAG, info.getText().toString());
 //            if (info.getText().toString().equals("美食")) {

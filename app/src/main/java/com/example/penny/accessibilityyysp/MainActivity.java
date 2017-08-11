@@ -67,7 +67,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void openApp() {
         Log.d(TAG, "accessibilityManagerEnabled:" + accessibilityManagerEnabled);
         if (mAccessibilityManager.isEnabled()) {
-            SimulateClickService.setELM(true);
             PackageManager packageManager = this.getPackageManager();
             Intent it = packageManager.getLaunchIntentForPackage(PackageConts.ELM);
             startActivity(it);
